@@ -12,8 +12,8 @@ const Home: React.FC = () => {
           <span className="highlight">Modern Taşımacılık</span>
         </h1>
         <p style={{ fontSize: '1.1rem', color: '#a1a1aa', lineHeight: '1.6' }}>
-          İnegöl Nakliyat ile eşyalarınız emin ellerde. iOS 18 estetiğiyle tasarlanmış 
-          yeni nesil fiyatlandırma ve takip sistemiyle tanışın.
+          İnegöl Nakliyat ile eşyalarınız emin ellerde. 
+          Yeni nesil fiyatlandırma ve takip sistemiyle tanışın.
         </p>
       </section>
 
