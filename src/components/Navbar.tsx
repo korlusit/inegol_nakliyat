@@ -1,11 +1,16 @@
+// src/components/Navbar.tsx
+
 import React, { useState } from 'react';
 import './Navbar.css';
+
+// ASSETS IMPORT
+import logoSmall from '../assets/logo-sm.png'; 
 
 import { 
   RiHome5Line, RiHome5Fill,
   RiMapPinLine, RiMapPinFill,
   RiPhoneLine, RiPhoneFill,
-  RiTruckLine, RiTruckFill 
+  RiImage2Line, RiImage2Fill 
 } from 'react-icons/ri';
 
 interface NavbarProps {
@@ -25,10 +30,17 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
       
       {/* 1. PC GÖRÜNÜMÜ */}
       <div className="pc-left-brand">
-        <div className="brand-circle">
-           <RiTruckLine className="brand-icon" />
+        <div className="brand-circle flex items-center justify-center bg-transparent border-none shadow-none">
+           {/* GÜNCELLEME: 
+               p-3   -> Logoyu daha da küçültür (Kenarlardan boşluk bırakır)
+               -mt-1 -> Logoyu çok az yukarı çeker
+           */}
+           <img 
+             src={logoSmall} 
+             alt="İnegöl Nakliyat" 
+             className="w-full h-full object-contain p-3 -mt-1" 
+           />
         </div>
-        {/* Yazıyı stil için ayırdık */}
         <span className="brand-name">
           İNEGÖL <span className="highlight-text">NAKLİYAT</span>
         </span>
@@ -41,9 +53,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
             <span>Ana Sayfa</span>
           </button>
           
-          <button className={`nav-link ${activeTab === 'fleet' ? 'active' : ''}`} onClick={() => handleNavClick('fleet')}>
-            {activeTab === 'fleet' ? <RiTruckFill /> : <RiTruckLine />}
-            <span>Filomuz</span>
+          <button className={`nav-link ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleNavClick('gallery')}>
+            {activeTab === 'gallery' ? <RiImage2Fill /> : <RiImage2Line />}
+            <span>Galeri</span>
           </button>
           
           <button className={`nav-link ${activeTab === 'regions' ? 'active' : ''}`} onClick={() => handleNavClick('regions')}>
@@ -62,8 +74,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
 
       {/* 2. MOBİL ÜST (MARKA) */}
       <div className="mobile-top-brand">
-        <div className="brand-circle">
-           <RiTruckLine className="brand-icon" />
+        <div className="brand-circle flex items-center justify-center bg-transparent border-none shadow-none">
+           {/* GÜNCELLEME: Mobilde de aynı ayar (p-3 ve -mt-1) */}
+           <img 
+             src={logoSmall} 
+             alt="Logo" 
+             className="w-full h-full object-contain p-3 -mt-1" 
+           />
         </div>
         <span className="brand-name">
           İNEGÖL <span className="highlight-text">NAKLİYAT</span>
@@ -78,9 +95,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
             {activeTab === 'home' ? <RiHome5Fill /> : <RiHome5Line />}
             <span>Ana Sayfa</span>
           </button>
-           <button className={`nav-link ${activeTab === 'fleet' ? 'active' : ''}`} onClick={() => handleNavClick('fleet')}>
-            {activeTab === 'fleet' ? <RiTruckFill /> : <RiTruckLine />}
-            <span>Filomuz</span>
+           <button className={`nav-link ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleNavClick('gallery')}>
+            {activeTab === 'gallery' ? <RiImage2Fill /> : <RiImage2Line />}
+            <span>Galeri</span>
           </button>
         </div>
 
