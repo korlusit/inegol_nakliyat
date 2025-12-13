@@ -1,36 +1,17 @@
 // src/pages/Wizard.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './Wizard.css';
 import { useData } from '../context/DataContext';
 import { 
   RiCloseLine, RiTruckLine, 
   RiHome5Line, RiBuilding4Line, RiUserLocationLine, 
   RiCheckLine, RiLayoutMasonryLine, RiWhatsappLine, RiHotelLine,
-  RiMapPinTimeLine, RiStairsLine, RiPhoneFill, RiInformationLine, RiErrorWarningLine
+  RiMapPinTimeLine, RiPhoneFill, RiInformationLine, RiArrowRightLine
 } from 'react-icons/ri';
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
-import 'leaflet-geosearch/dist/geosearch.css';
-
-// Marker İkonları
-import iconMarker from 'leaflet/dist/images/marker-icon.png';
-import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-const DefaultIcon = L.icon({
-    iconUrl: iconMarker,
-    iconRetinaUrl: iconRetina,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+// NOT: Harita kütüphaneleri (Leaflet vb.) tamamen kaldırıldı. 
+// Bu sayede sayfa çok daha hızlı açılacak (Lazy Load verimliliği artacak).
 
 interface WizardProps {
   onClose: () => void;
@@ -47,135 +28,35 @@ const ROOM_TYPES = [
   { id: '6+1', label: '6+1 Villa', desc: 'Komple', icon: <RiBuilding4Line /> },
 ];
 
-const SearchField = () => {
-  const map = useMap();
-  useEffect(() => {
-    // @ts-ignore
-    const provider = new OpenStreetMapProvider();
-    // @ts-ignore
-    const searchControl = new GeoSearchControl({
-      provider: provider,
-      style: 'bar',
-      showMarker: false, 
-      keepResult: true,
-      searchLabel: 'Adres ara...',
-    });
-    map.addControl(searchControl);
-    return () => { map.removeControl(searchControl); };
-  }, [map]);
-  return null;
-};
-
-const LocationMarker = ({ points, setPoints }: { points: any[], setPoints: any }) => {
-  useMapEvents({
-    click(e) {
-      if (points.length < 2) {
-        setPoints([...points, e.latlng]);
-      } else {
-        setPoints([e.latlng]);
-      }
-    },
-  });
-  return null;
-};
-
 const Wizard: React.FC<WizardProps> = ({ onClose }) => {
   const { data } = useData(); 
   const phone = data?.general?.phone || '905XXXXXXXXXX';
 
   const [step, setStep] = useState(1);
-  const [mapCenter] = useState<[number, number]>([40.076, 29.51]); 
-  const [points, setPoints] = useState<L.LatLng[]>([]);
-  const [distanceDisplay, setDistanceDisplay] = useState("0");
-  const [routePath, setRoutePath] = useState<[number, number][]>([]); 
-  const [calculating, setCalculating] = useState(false);
-  const [isRealRoad, setIsRealRoad] = useState(true); // Yol gerçek mi kuş uçuşu mu?
-
   const [selectedRoom, setSelectedRoom] = useState<string>('2+1');
+  
+  // Harita yerine metin bazlı adres state'leri
+  const [addressData, setAddressData] = useState({
+    from: '',
+    to: ''
+  });
+
   const [buildingData, setBuildingData] = useState({
     floorFrom: '', elevatorFrom: false,
     floorTo: '', elevatorTo: false,
   });
 
-  // --- GARANTİLİ ROTA VE MESAFE HESAPLAMA ---
-  useEffect(() => {
-    const calculateRoute = async () => {
-      if (points.length !== 2) {
-        setDistanceDisplay("0");
-        setRoutePath([]);
-        return;
-      }
-
-      const p1 = points[0];
-      const p2 = points[1];
-      setCalculating(true);
-      setIsRealRoad(true);
-
-      // 1. ADIM: OSRM Public Sunucusunu Dene
-      // Dikkat: OSRM [Lng, Lat] ister. Leaflet [Lat, Lng] verir.
-      const url = `https://router.project-osrm.org/route/v1/driving/${p1.lng},${p1.lat};${p2.lng},${p2.lat}?overview=full&geometries=geojson`;
-
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          
-          // Gerçek Yolu Bulduk
-          setDistanceDisplay((route.distance / 1000).toFixed(2));
-          const coords = route.geometry.coordinates.map((c: any) => [c[1], c[0]]); // Ters çevir
-          setRoutePath(coords);
-        } else {
-          throw new Error("API boş döndü");
-        }
-      } catch (err) {
-        console.warn("Gerçek yol bulunamadı, matematiksel hesap yapılıyor...", err);
-        setIsRealRoad(false);
-        
-        // 2. ADIM: FALLBACK (Matematiksel Hesaplama)
-        // Harita servisi bozuksa müşteriyi yarı yolda bırakma.
-        
-        // Mesafe Hesabı (Haversine Formülü - Kuş Uçuşu)
-        const R = 6371; // Dünya yarıçapı km
-        const dLat = (p2.lat - p1.lat) * Math.PI / 180;
-        const dLon = (p2.lng - p1.lng) * Math.PI / 180;
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-        const birdDist = R * c;
-        
-        // Yol Payı Ekle (%30 sapma payı)
-        const roadDist = birdDist * 1.3;
-        setDistanceDisplay(roadDist.toFixed(2));
-
-        // Düz Çizgi Çiz (Leaflet Polyline)
-        setRoutePath([[p1.lat, p1.lng], [p2.lat, p2.lng]]);
-      } finally {
-        setCalculating(false);
-      }
-    };
-
-    calculateRoute();
-  }, [points]);
-
   const sendToWhatsApp = () => {
-    if (points.length < 2) return;
-    const p1 = points[0];
-    const p2 = points[1];
-    const googleMapsUrl = `http://googleusercontent.com/maps.google.com/dir/${p1.lat},${p1.lng}/${p2.lat},${p2.lng}`;
-
-    const message = `👋 Merhaba, web sitenizden taşınma için bilgi almak istiyorum.
+    // Harita linki yerine direkt adresleri yazdırıyoruz
+    const message = `👋 Merhaba, web sitenizden taşınma fiyatı almak istiyorum.
 
 🏠 *Ev Tipi:* ${selectedRoom}
-🛣️ *Yol Mesafesi:* ${distanceDisplay} km
 
-🏢 *MEVCUT EV:* ${buildingData.floorFrom || 'Giriş'}. Kat (${buildingData.elevatorFrom ? '✅ Mobil Asansör' : '❌ Merdiven'})
-🏢 *YENİ EV:* ${buildingData.floorTo || 'Giriş'}. Kat (${buildingData.elevatorTo ? '✅ Mobil Asansör' : '❌ Merdiven'})
+📍 *NEREDEN:* ${addressData.from}
+🏢 Kat: ${buildingData.floorFrom || 'Giriş'} (${buildingData.elevatorFrom ? '✅ Asansörlü' : '❌ Merdiven'})
 
-📍 *HARİTA LİNKİ:*
-${googleMapsUrl}
+📍 *NEREYE:* ${addressData.to}
+🏢 Kat: ${buildingData.floorTo || 'Giriş'} (${buildingData.elevatorTo ? '✅ Asansörlü' : '❌ Merdiven'})
 
 Fiyat teklifi alabilir miyim?`;
 
@@ -187,13 +68,13 @@ Fiyat teklifi alabilir miyim?`;
   return (
     <div className="fixed inset-0 z-[2000] flex flex-col md:items-center md:justify-center bg-black/90 backdrop-blur-sm p-0 md:p-4">
       
-      <div className="w-full h-full md:h-[90vh] md:max-w-4xl bg-[#111] md:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden relative">
+      <div className="w-full h-full md:h-[90vh] md:max-w-4xl bg-[#111] md:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden relative animate-fadeIn">
         
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 md:p-6 border-b border-white/10 bg-[#161b22]">
           <div>
             <h2 className="text-lg md:text-2xl font-bold text-white">
-              {step === 1 && "1. Adım: Konum Seçimi"}
+              {step === 1 && "1. Adım: Konum Bilgileri"}
               {step === 2 && "2. Adım: Ev Tipi"}
               {step === 3 && "3. Adım: Bina Durumu"}
               {step === 4 && "4. Adım: Özet & Teklif"}
@@ -208,65 +89,48 @@ Fiyat teklifi alabilir miyim?`;
         {/* CONTENT */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
           
-          {/* ADIM 1: HARİTA */}
+          {/* ADIM 1: ADRES GİRİŞİ (Harita Yerine) */}
           {step === 1 && (
-            <div className="flex flex-col h-full gap-4">
-              <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-sm text-blue-200 flex gap-2 items-center">
-                <RiInformationLine className="text-lg flex-shrink-0" />
-                <span>Haritaya dokunarak <b>Mevcut Ev</b> ve <b>Yeni Ev</b> konumlarını işaretleyin.</span>
+            <div className="flex flex-col h-full justify-center gap-8 max-w-2xl mx-auto">
+              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-sm text-blue-200 flex gap-3 items-center">
+                <RiInformationLine className="text-2xl flex-shrink-0" />
+                <span>Harita sorunları nedeniyle adresleri manuel girmeniz daha hızlı sonuç verecektir. İlçe veya mahalle yazmanız yeterlidir.</span>
               </div>
               
-              <div className="flex-1 min-h-[300px] rounded-2xl overflow-hidden border border-white/10 relative z-0">
-                <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%', background:'#0f172a' }}>
-                  <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
-                  <SearchField />
-                  <LocationMarker points={points} setPoints={setPoints} />
-                  
-                  {points.map((pos, idx) => (
-                    <Marker key={idx} position={pos}>
-                      <Popup>{idx === 0 ? "MEVCUT EV" : "YENİ EV"}</Popup>
-                    </Marker>
-                  ))}
-
-                  {/* ROTA ÇİZGİSİ */}
-                  {routePath.length > 0 && (
-                    <Polyline 
-                      key={routePath.length} 
-                      positions={routePath} 
-                      pathOptions={{ 
-                        color: isRealRoad ? '#007aff' : '#f59e0b', // Gerçekse Mavi, Yedekse Turuncu
-                        weight: 6, 
-                        opacity: 0.9,
-                        dashArray: isRealRoad ? undefined : '10, 10', // Yedekse kesikli çizgi
-                        lineJoin: 'round'
-                      }} 
+              <div className="space-y-6">
+                <div>
+                    <label className="block text-slate-400 text-sm font-bold mb-2 uppercase tracking-wider">
+                        <RiUserLocationLine className="inline mr-1 text-blue-500"/> Nereden Taşınıyorsunuz?
+                    </label>
+                    <input 
+                        type="text" 
+                        placeholder="Örn: İnegöl, Alanyurt, Bursa Merkez..." 
+                        className="w-full bg-slate-900 border border-slate-700 text-white p-4 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-lg transition-all placeholder:text-slate-600"
+                        value={addressData.from}
+                        onChange={(e) => setAddressData({...addressData, from: e.target.value})}
                     />
-                  )}
-                </MapContainer>
+                </div>
 
-                {calculating && (
-                   <div className="absolute inset-0 bg-black/50 z-[1000] flex items-center justify-center backdrop-blur-sm">
-                     <div className="bg-slate-900 px-4 py-2 rounded-full flex items-center gap-2 text-white border border-white/10">
-                       <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                       <span className="text-sm font-medium">Hesaplanıyor...</span>
-                     </div>
-                   </div>
-                )}
+                <div className="flex justify-center text-slate-600">
+                    <RiArrowRightLine className="text-3xl rotate-90 md:rotate-0" />
+                </div>
 
-                {/* MESAFE GÖSTERGESİ */}
-                {!calculating && parseFloat(distanceDisplay) > 0 && (
-                  <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur border border-green-500/30 px-4 py-2 rounded-xl z-[900]">
-                    <div className="text-xs text-slate-400 uppercase tracking-wider">Mesafe</div>
-                    <div className="text-xl font-bold text-green-400 flex items-center gap-1">
-                      <RiTruckLine /> {distanceDisplay} km
-                    </div>
-                  </div>
-                )}
+                <div>
+                    <label className="block text-slate-400 text-sm font-bold mb-2 uppercase tracking-wider">
+                        <RiMapPinTimeLine className="inline mr-1 text-green-500"/> Nereye Taşınıyorsunuz?
+                    </label>
+                    <input 
+                        type="text" 
+                        placeholder="Örn: İstanbul, İzmir, Ankara..." 
+                        className="w-full bg-slate-900 border border-slate-700 text-white p-4 rounded-xl focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none text-lg transition-all placeholder:text-slate-600"
+                        value={addressData.to}
+                        onChange={(e) => setAddressData({...addressData, to: e.target.value})}
+                    />
+                </div>
               </div>
             </div>
           )}
 
-          {/* ... DİĞER ADIMLAR AYNI KALIYOR ... */}
           {/* Adım 2: Oda Seçimi */}
           {step === 2 && (
             <div className="h-full">
@@ -362,22 +226,30 @@ Fiyat teklifi alabilir miyim?`;
                   <span className="text-slate-400 flex items-center gap-2"><RiHome5Line/> Ev Tipi</span>
                   <span className="text-white font-bold">{selectedRoom}</span>
                 </div>
-                <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                  <span className="text-slate-400 flex items-center gap-2"><RiMapPinTimeLine/> Mesafe</span>
-                  <span className="text-white font-bold">{distanceDisplay} km</span>
+                
+                {/* Mesafe yerine Adresleri Göster */}
+                <div className="p-4 border-b border-white/10 bg-white/5 space-y-2">
+                   <div className="flex items-start gap-2">
+                      <RiUserLocationLine className="text-blue-500 mt-1"/>
+                      <div>
+                        <span className="text-xs text-slate-500 uppercase block">Nereden</span>
+                        <span className="text-white font-bold">{addressData.from || 'Belirtilmedi'}</span>
+                        <span className="text-slate-400 text-xs block mt-1">{buildingData.floorFrom || 'Giriş'}. Kat • {buildingData.elevatorFrom ? 'Asansörlü' : 'Merdiven'}</span>
+                      </div>
+                   </div>
                 </div>
-                <div className="p-4 border-b border-white/10 bg-white/5">
-                  <span className="text-xs text-slate-500 uppercase block mb-1">Mevcut Ev</span>
-                  <span className="text-white text-sm">
-                    {buildingData.floorFrom || 'Giriş'}. Kat • {buildingData.elevatorFrom ? 'Asansörlü' : 'Merdiven'}
-                  </span>
+
+                <div className="p-4 bg-white/5 space-y-2">
+                   <div className="flex items-start gap-2">
+                      <RiMapPinTimeLine className="text-green-500 mt-1"/>
+                      <div>
+                        <span className="text-xs text-slate-500 uppercase block">Nereye</span>
+                        <span className="text-white font-bold">{addressData.to || 'Belirtilmedi'}</span>
+                        <span className="text-slate-400 text-xs block mt-1">{buildingData.floorTo || 'Giriş'}. Kat • {buildingData.elevatorTo ? 'Asansörlü' : 'Merdiven'}</span>
+                      </div>
+                   </div>
                 </div>
-                <div className="p-4 bg-white/5">
-                  <span className="text-xs text-slate-500 uppercase block mb-1">Yeni Ev</span>
-                  <span className="text-white text-sm">
-                    {buildingData.floorTo || 'Giriş'}. Kat • {buildingData.elevatorTo ? 'Asansörlü' : 'Merdiven'}
-                  </span>
-                </div>
+
               </div>
               <p className="text-slate-400 text-sm mt-6 text-center max-w-xs">
                 Bu bilgiler doğrultusunda en uygun fiyat teklifini almak için bize WhatsApp'tan ulaşın.
@@ -400,8 +272,8 @@ Fiyat teklifi alabilir miyim?`;
           {step < 4 ? (
             <button 
               onClick={() => setStep(step + 1)} 
-              // DÜZELTME: Sadece 2 nokta yoksa kilitle, rota hatası varsa bile devam etsin (Çünkü matematiksel hesapladık)
-              disabled={step === 1 && (points.length < 2)}
+              // Validasyon: Adresler boşsa ilerletme
+              disabled={step === 1 && (!addressData.from.trim() || !addressData.to.trim())}
               className="flex-1 md:flex-none px-8 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)]"
             >
               {step === 1 ? "Konumu Onayla" : "Devam Et"}

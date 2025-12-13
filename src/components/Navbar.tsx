@@ -7,13 +7,13 @@ import logoSmall from '../assets/logo-sm.png';
 
 import { 
   RiHome5Line, RiHome5Fill,
-  RiMapPinLine, RiMapPinFill,
+  RiInformationLine, RiInformationFill, // İkon değişti
   RiPhoneLine, RiPhoneFill,
   RiImage2Line, RiImage2Fill 
 } from 'react-icons/ri';
 
 interface NavbarProps {
-  onOpenWizard: () => void; // App.tsx'ten gelen fonksiyonu kabul et
+  onOpenWizard: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onOpenWizard }) => {
@@ -21,22 +21,20 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWizard }) => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('home');
 
-  // URL değişirse butonu yak
   useEffect(() => {
     const path = location.pathname;
     if (path === '/') setActiveTab('home');
     else if (path.includes('gallery')) setActiveTab('gallery');
-    else if (path.includes('regions')) setActiveTab('regions');
+    else if (path.includes('hakkimizda')) setActiveTab('about'); // Link kontrolü
     else if (path.includes('contact')) setActiveTab('contact');
   }, [location]);
 
   const handleNavClick = (page: string) => {
     if (page === 'quote') {
-      // Fiyat Al'a basıldıysa App.tsx'teki fonksiyonu çalıştır
       onOpenWizard();
     } else {
-      // Diğer sayfalara git
       if (page === 'home') navigate('/');
+      else if (page === 'about') navigate('/hakkimizda');
       else navigate(`/${page}`);
     }
   };
@@ -66,9 +64,10 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWizard }) => {
             <span>Galeri</span>
           </button>
           
-          <button className={`nav-link ${activeTab === 'regions' ? 'active' : ''}`} onClick={() => handleNavClick('regions')}>
-            {activeTab === 'regions' ? <RiMapPinFill /> : <RiMapPinLine />}
-            <span>Bölgeler</span>
+          {/* İsim ve İkon Değişti */}
+          <button className={`nav-link ${activeTab === 'about' ? 'active' : ''}`} onClick={() => handleNavClick('about')}>
+            {activeTab === 'about' ? <RiInformationFill /> : <RiInformationLine />}
+            <span>Hakkımızda</span>
           </button>
           
           <button className={`nav-link ${activeTab === 'contact' ? 'active' : ''}`} onClick={() => handleNavClick('contact')}>
@@ -103,9 +102,10 @@ const Navbar: React.FC<NavbarProps> = ({ onOpenWizard }) => {
         <div className="spacer"></div>
 
         <div className="mobile-group">
-            <button className={`nav-link ${activeTab === 'regions' ? 'active' : ''}`} onClick={() => handleNavClick('regions')}>
-            <RiMapPinFill />
-            <span>Bölgeler</span>
+            {/* İsim ve İkon Değişti */}
+            <button className={`nav-link ${activeTab === 'about' ? 'active' : ''}`} onClick={() => handleNavClick('about')}>
+            <RiInformationLine />
+            <span>Hakkımızda</span>
           </button>
             <button className={`nav-link ${activeTab === 'contact' ? 'active' : ''}`} onClick={() => handleNavClick('contact')}>
             <RiPhoneFill />
