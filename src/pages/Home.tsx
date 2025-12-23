@@ -72,8 +72,11 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* TESTIMONIALS */}
+      <Testimonials />
+
       {/* HİZMETLER */}
-      <section className="w-full max-w-6xl px-4 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <section className="w-full max-w-6xl px-4 pb-12 mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           { icon: RiTruckLine, title: "Ev Nakliyesi", desc: "Eşyalarınızı kendi evimiz gibi özenle paketleyip taşıyoruz." },
           { icon: RiBuilding4Line, title: "Ofis Nakliyesi", desc: "İş yeriniz için profesyonel, hızlı ve planlı çözümler." },
@@ -117,8 +120,7 @@ const Home: React.FC = () => {
           </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <Testimonials />
+
 
     </main>
   );
