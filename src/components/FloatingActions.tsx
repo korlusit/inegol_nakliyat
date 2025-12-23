@@ -24,7 +24,7 @@ const FloatingActions: React.FC<FloatingActionsProps> = ({ isWizardOpen }) => {
       {/* 3. INSTAGRAM BUTONU (Sadece İletişim ve Fiyat Alma'da) */}
       {showInstagram && (
         <a
-          href="https://www.instagram.com/inegol_evden_eve_nakliyat/"
+          href="https://www.instagram.com/inegol_nakliye16/"
           target="_blank"
           rel="noreferrer"
           className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white shadow-[0_0_15px_rgba(131,58,180,0.5)] transition-transform hover:scale-110"
